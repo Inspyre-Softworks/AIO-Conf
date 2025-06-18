@@ -1,0 +1,19 @@
+[project]
+name = "aio-conf"
+version = "1.0.0-dev.1"
+description = ""
+authors = [
+    {name = "tayja",email = "t.blaclstone@inspyre.tech"}
+]
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+]
+
+[tool.poetry]
+packages = [{include = "aio_conf", from = "src"}]
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
