@@ -1,0 +1,35 @@
+{
+  "options": {
+    "debug": {
+      "name": "debug",
+      "type": "bool",
+      "default": false,
+      "env_var": "DEBUG",
+      "cli_arg": "--debug",
+      "help": ""
+    }
+  },
+  "subconfigs": {
+    "database": {
+      "options": {
+        "host": {
+          "name": "host",
+          "type": "str",
+          "default": "localhost",
+          "env_var": "DB_HOST",
+          "cli_arg": "--db-host",
+          "help": ""
+        },
+        "port": {
+          "name": "port",
+          "type": "int",
+          "default": 3306,
+          "env_var": "DB_PORT",
+          "cli_arg": "--db-port",
+          "help": ""
+        }
+      },
+      "subconfigs": {}
+    }
+  }
+}
