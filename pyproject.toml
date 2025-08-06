@@ -3,12 +3,14 @@ name = "aio-conf"
 version = "1.0.0-dev.1"
 description = ""
 authors = [
-    {name = "tayja",email = "t.blaclstone@inspyre.tech"}
+    {name = "tayja",email = "t.blackstone@inspyre.tech"}
 ]
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-    "pyyaml>=6.0"
+    "pyyaml>=6.0",
+    "streamlit (>=1.47.1,<2.0.0)",
+    "pysimplegui-4-foss (==4.60.4.1)"
 ]
 
 [tool.poetry]
