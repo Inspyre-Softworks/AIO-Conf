@@ -28,9 +28,62 @@ class AIOConfig:
         v1.0.0
     """
 
-    def __init__(self, spec: ConfigSpec):
-        self.spec = spec
-        self.values: Dict[str, Any] = {opt.name: opt.default for opt in spec.options}
+    def __init__(
+            self,
+            spec:            ConfigSpec,
+            config_filepath: Optional[str, Path] = None,
+    ):
+        """
+        Initialize a new instance of the AIOConfig class.
+
+        Parameters:
+            spec (ConfigSpec):
+                The configuration specification.
+
+            config_filepath (Optional[str, Path]):
+                Path to the configuration file. If None, no file is loaded.
+
+        Returns:
+            None
+        """
+        self.spec                              = spec
+        self.values:            Dict[str, Any] = {opt.name: opt.default for opt in spec.options}
+        self.__config_filepath: Optional[Path] = None
+
+        if config_filepath is not None:
+            self.config_filepath = config_filepath
+
+    @property
+    def config_filepath(self) -> Optional[Path]:
+        """
+        Get the configuration file path.
+
+        Returns:
+            Optional[Path]:
+                Path to the configuration file.
+
+        Since:
+            v1.0.0
+
+        """
+        return self.__config_filepath
+
+    @config_filepath.setter
+    def config_filepath(self, new: Path) -> None:
+        """
+        Set the configuration file path.
+
+        Parameters:
+            new (Path):
+                New configuration file path.
+        """
+        self.__config_filepath = Path(new)
+
+        if not self.config_filepath.parent.exists():
+            self.config_filepath.parent.mkdir(parents=True, exist_ok=True)
+
+    def __repr__(self) -> str:
+        return f'<AIOConfig {self.config_filepath}> {self.as_dict()}'
 
     @classmethod
     def load_from_spec(cls, path: str | Path) -> AIOConfig:
@@ -88,6 +141,7 @@ class AIOConfig:
         file_data = load_file(file_path) if file_path else {}
 
         self.values = merge_sources(self.spec, cli_data, env_data, file_data)
+        self.save_ini(self.config_filepath)
 
     def as_dict(self) -> Dict[str, Any]:
         """
