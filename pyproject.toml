@@ -1,6 +1,6 @@
 [project]
 name = "aio-conf"
-version = "1.0.0-dev.1"
+version = "1.0.0-dev.2"
 description = ""
 authors = [
     {name = "tayja",email = "t.blackstone@inspyre.tech"}
