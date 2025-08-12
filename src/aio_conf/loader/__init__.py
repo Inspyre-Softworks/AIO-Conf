@@ -20,7 +20,11 @@ def parse_cli(spec: ConfigSpec, args: List[str]) -> Dict[str, Any]:
                 kwargs["action"] = "store_true"
             else:
                 kwargs["type"] = opt.coerce
-            parser.add_argument(*opt.cli, **kwargs)
+            # ``OptionSpec`` normalizes ``cli`` to a list, but guard against
+            # any stray string values to avoid argparse treating each
+            # character as a separate flag.
+            flags = opt.cli if isinstance(opt.cli, (list, tuple)) else [opt.cli]
+            parser.add_argument(*flags, **kwargs)
     parsed, _ = parser.parse_known_args(args)
     return {k: v for k, v in vars(parsed).items() if v is not None}
 

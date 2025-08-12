@@ -50,6 +50,8 @@ cfg.load(
 )
 print(cfg.as_dict())
 ```
+The `env` parameter accepts a mapping of environment variables and defaults to
+`os.environ` when omitted.
 
 Configuration can be written to an INI file:
 
