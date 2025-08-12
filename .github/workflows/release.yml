@@ -1,31 +1,23 @@
 name: Publish to PyPI / TestPyPI
-
 on:
   push:
     tags:
-      - 'v*'       # e.g. v1.2.3
-      - '[0-9]*'   # e.g. 1.2.3
-  workflow_dispatch: {}   # allow manual runs
+      - 'v*'
+      - '[0-9]*'
+  workflow_dispatch: {}
 
 jobs:
   publish:
-    name: upload to PyPI / TestPyPI
     runs-on: ubuntu-latest
-    # If you set an "environment" in the PyPI/TestPyPI Trusted Publisher, this must match
-    # environment: pypi
+    # environment: pypi   # optional when using tokens; keep only if you store env-scoped secrets
     permissions:
-      contents: read
-      id-token: write  # REQUIRED for Trusted Publishing (OIDC)
+      contents: read      # drop id-token: write when using tokens
 
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-python@v5
-        with:
-          python-version: '3.x'
-
+        with: { python-version: '3.x' }
       - run: python -m pip install --upgrade build packaging
-
       - run: python -m build
 
       - name: Decide index
@@ -37,20 +29,25 @@ jobs:
           tag = os.environ['GITHUB_REF_NAME']
           v = tag[1:] if tag.startswith('v') else tag
           try:
-              ver = Version(v)
-              pre = ver.is_prerelease or ver.is_devrelease
+              pre = Version(v).is_prerelease or Version(v).is_devrelease
           except InvalidVersion:
               pre = True
           with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
-              f.write(f"is_prerelease={str(pre).lower()}\n")
+              f.write(f"is_prerelease={'true' if pre else 'false'}\n")
           PY
 
+      # Pre/dev → TestPyPI via token
       - name: Publish to TestPyPI (pre/dev)
         if: ${{ steps.decide.outputs.is_prerelease == 'true' }}
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
+          # default user is __token__, no need to set it
+          password: ${{ secrets.TEST_PYPI_ACCESS_TOKEN }}
           repository-url: https://test.pypi.org/legacy/
 
+      # Stable → PyPI via token
       - name: Publish to PyPI (stable)
         if: ${{ steps.decide.outputs.is_prerelease != 'true' }}
         uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          password: ${{ secrets.PYPI_ACCESS_TOKEN }}
