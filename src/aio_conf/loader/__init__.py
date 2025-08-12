@@ -25,10 +25,8 @@ def parse_cli(spec: ConfigSpec, args: List[str]) -> Dict[str, Any]:
             # character as a separate flag. Filter out empty or ``None`` values
             # so ``argparse`` receives only valid flags.
             flags = opt.cli if isinstance(opt.cli, (list, tuple)) else [opt.cli]
-            flags = [flag for flag in flags if flag]
-            if not flags:
-                continue
-            parser.add_argument(*flags, **kwargs)
+            if flags := [flag for flag in flags if flag]:
+                parser.add_argument(*flags, **kwargs)
     parsed, _ = parser.parse_known_args(args)
     return {k: v for k, v in vars(parsed).items() if v is not None}
 
