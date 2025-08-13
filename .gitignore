@@ -2,3 +2,4 @@ __pycache__/
 dist/
 poetry.lock
 /.idea
+/src/aio_conf/meta/_version.py
