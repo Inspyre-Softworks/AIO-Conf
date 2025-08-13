@@ -1,23 +1,48 @@
-[project]
-name = "aio-conf"
-version = "1.0.0-dev.7"
-description = ""
-authors = [
-    {name = "t.blackstone",email = "t.blackstone@inspyre.tech"}
-]
-readme = "README.md"
-requires-python = ">=3.12"
-dependencies = [
-    "pyyaml>=6.0",
-    "streamlit (>=1.47.1,<2.0.0)",
-    "pysimplegui-4-foss (==4.60.4.1)",
-    "notebook (>=7.4.5,<8.0.0)"
-]
-
 [tool.poetry]
-packages = [{include = "aio_conf", from = "src"}]
+name = "aio-conf"
+version = "0.0.0"  # dummy; replaced by poetry-dynamic-versioning at build time
+description = "All-in-one configuration specification and loader for CLI, env vars, and files."
+authors = ["Taylor-Jayde Blackstone <t.blackstone@inspyre.tech>"]
+readme = "README.md"
+license = "MIT"
+keywords = ["configuration", "cli", "environment", "json", "yaml", "ini"]
+homepage = "https://github.com/Inspyre-Softworks/AIO-Conf"
+repository = "https://github.com/Inspyre-Softworks/AIO-Conf"
+documentation = "https://github.com/Inspyre-Softworks/AIO-Conf/wiki"
+packages = [{ include = "aio_conf", from = "src" }]
 
+[tool.poetry.dependencies]
+python = ">=3.12"
+pyyaml = ">=6.0"
+streamlit = ">=1.47.1,<2.0.0"
+pysimplegui-4-foss = "==4.60.4.1"
+notebook = ">=7.4.5,<8.0.0"
+
+# ---- Dynamic versioning plugin (valid keys) ----
+[tool.poetry-dynamic-versioning]
+enable = true
+vcs = "git"
+style = "pep440"
+
+# Accept: v1.2.3, v1.2.3a1, v1.2.3b2, v1.2.3rc3, v1.2.3dev4, v1.2.3post5, and optional +metadata
+# (Backslashes are double-escaped for TOML strings.)
+pattern = "^(?:v)?(?P<base>\\d+\\.\\d+\\.\\d+)(?:(?P<stage>a|alpha|b|beta|rc|dev|post)(?P<revision>\\d+)?)?(?:\\+(?P<tagged_metadata>[0-9A-Za-z.-]+))?$"
+
+# If you want to include tagged metadata (from the '+...' part) when present:
+tagged-metadata = true
+# If you also want distance/commit/dirty metadata when not exactly on a tag, set:
+# metadata = true
+# dirty = true
+
+# Replace a placeholder inside this file during Poetry commands like `build`/`publish`.
+# The file will be created if missing; initial-content provides the placeholder text.
+[tool.poetry-dynamic-versioning.files."src/aio_conf/meta/_version.py"]
+initial-content = """
+__version__ = "0.0.0"
+"""
+# Set this to true if you want the substitution to persist on disk after the command:
+# persistent-substitution = true
 
 [build-system]
-requires = ["poetry-core>=2.0.0,<3.0.0"]
-build-backend = "poetry.core.masonry.api"
+requires = ["poetry-core>=1.0.0", "poetry-dynamic-versioning>=1.0.0,<2.0.0"]
+build-backend = "poetry_dynamic_versioning.backend"
