@@ -35,8 +35,8 @@ The spec can also be stored in JSON and loaded with
 `AIOConfig` merges all sources with the following precedence:
 
 1. CLI arguments
-2. Environment variables
-3. File values (`json` or `yaml`)
+2. Environment variables (including nested values like `APP_DB__HOST`)
+3. File values (`json`, `yaml`, `toml` or `ini`/`cfg`)
 4. Defaults defined in the spec
 
 ```python
@@ -58,6 +58,19 @@ Configuration can be written to an INI file:
 ```python
 cfg.save_ini("settings.ini")
 ```
+
+## Command line helper
+
+Install the project (or use `poetry run`) to access the `aio-conf` CLI:
+
+```bash
+aio-conf init spec.json          # create a starter spec template
+aio-conf validate spec.json      # sanity check the spec
+aio-conf sample spec.json --format toml --output sample.toml
+```
+
+All commands provide blunt-but-helpful feedback, and `sample` understands the
+same output formats that the loader accepts.
 
 ## Testing
 

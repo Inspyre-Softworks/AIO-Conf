@@ -141,7 +141,8 @@ class AIOConfig:
         file_data = load_file(file_path) if file_path else {}
 
         self.values = merge_sources(self.spec, cli_data, env_data, file_data)
-        self.save_ini(self.config_filepath)
+        if self.config_filepath is not None:
+            self.save_ini(self.config_filepath)
 
     def as_dict(self) -> Dict[str, Any]:
         """
