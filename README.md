@@ -14,6 +14,13 @@ directory install dependencies with:
 poetry install
 ```
 
+The optional configuration-builder UIs are development tools and are not
+required by the core library. Install them only when needed:
+
+```bash
+poetry install --with ui
+```
+
 ## Defining a specification
 
 You can declare options programmatically using `OptionSpec` and `ConfigSpec`:
@@ -26,6 +33,8 @@ spec = ConfigSpec([
     OptionSpec("debug", bool, default=False, env="APP_DEBUG", cli="--debug"),
 ])
 ```
+Boolean command-line options also accept the generated negated form, such as
+`--no-debug`.
 
 The spec can also be stored in JSON and loaded with
 `ConfigSpec.from_json_file()` or via `AIOConfig.load_from_spec()`.

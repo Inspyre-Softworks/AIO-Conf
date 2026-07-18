@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Iterable, List, Sequence, Union
+from typing import Any, Iterable, Sequence, Union
 
 from aio_conf.core import ConfigSpec, OptionSpec
 

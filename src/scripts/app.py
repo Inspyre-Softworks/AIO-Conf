@@ -1,6 +1,6 @@
 import PySimpleGUI as sg
-from dataclasses import dataclass, asdict
-from aio_conf.core import OptionSpec, ConfigSpec
+from dataclasses import dataclass
+from aio_conf.core import OptionSpec
 import json
 import ast
 import re

@@ -72,19 +72,21 @@ class ConfigSpec:
         for opt in raw_options:
             if not isinstance(opt, dict):
                 raise ValueError('Each option must be a dictionary')
-            filtered = {k: v for k, v in opt.items() if k in option_fields}
-            opts.append(OptionSpec(**filtered))
+            unknown_fields = sorted(set(opt) - option_fields)
+            if unknown_fields:
+                raise ValueError(
+                    f"Unknown option field(s): {', '.join(unknown_fields)}"
+                )
+            opts.append(OptionSpec(**opt))
 
-        inst = cls(opts)
-        # __post_init__ already validated, but keep this explicit if someone later disables it in __init__
-        if inst._auto_validate:
-            inst._validate()
-        return inst
+        return cls(opts)
 
     def to_dict(self) -> dict[str, Any]:
         def opt_to_dict(o: OptionSpec) -> dict[str, Any]:
             fields = o.__dataclass_fields__.keys()  # type: ignore[attr-defined]
-            return {k: getattr(o, k) for k in fields}
+            data = {k: getattr(o, k) for k in fields}
+            data['type'] = _serialize_type(o.type)
+            return data
         return {'options': [opt_to_dict(o) for o in self.options]}
 
     def to_json(self, *, indent: int = 2, sort_keys: bool = True) -> str:
@@ -98,16 +100,8 @@ class ConfigSpec:
         indent: int = 2,
         sort_keys: bool = True,
     ) -> Optional[str | Path]:
-        """
-        Dump a ConfigSpec to disk. Tries the Developer Toolkit dumper first.
-        """
+        """Serialize this specification to a JSON file."""
         p = Path(path)
-        try:
-            from aio_conf.Developer_Toolkit.dumper import dump_spec  # type: ignore
-            return dump_spec(self, p, return_path_on_success=bool(return_path_on_success))
-        except Exception:
-            pass
-
         p.parent.mkdir(parents=True, exist_ok=True)
         with p.open('w', encoding='utf-8') as f:
             f.write(self.to_json(indent=indent, sort_keys=sort_keys))
@@ -178,10 +172,21 @@ class ConfigSpec:
         Adjust the module path here if your validator lives elsewhere.
         """
         try:
-            from aio_conf.validation import validate_spec  # type: ignore
+            from aio_conf.Developer_Toolkit.validator import validate_spec
             return validate_spec
-        except Exception:
+        except ImportError:
             return None
+
+
+def _serialize_type(option_type: Any) -> str:
+    if isinstance(option_type, str):
+        return option_type
+    if option_type is Path:
+        return 'path'
+    if any(option_type is supported for supported in (str, int, float, bool, list, tuple, dict)):
+        return option_type.__name__
+    name = getattr(option_type, '__name__', repr(option_type))
+    raise TypeError(f"Cannot serialize custom option type {name!r} to JSON")
 
 
 __all__ = ['ConfigSpec']

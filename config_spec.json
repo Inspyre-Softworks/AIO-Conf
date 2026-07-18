@@ -1,35 +1,22 @@
 {
-  "options": {
-    "debug": {
+  "options": [
+    {
       "name": "debug",
       "type": "bool",
       "default": false,
-      "env_var": "DEBUG",
-      "cli_arg": "--debug",
-      "help": ""
-    }
-  },
-  "subconfigs": {
-    "database": {
-      "options": {
-        "host": {
-          "name": "host",
-          "type": "str",
-          "default": "localhost",
-          "env_var": "DB_HOST",
-          "cli_arg": "--db-host",
-          "help": ""
-        },
-        "port": {
-          "name": "port",
-          "type": "int",
-          "default": 3306,
-          "env_var": "DB_PORT",
-          "cli_arg": "--db-port",
-          "help": ""
-        }
+      "env": "DEBUG",
+      "cli": ["--debug"],
+      "description": "Enable debug logging."
+    },
+    {
+      "name": "database",
+      "type": "dict",
+      "default": {
+        "host": "localhost",
+        "port": 3306
       },
-      "subconfigs": {}
+      "env": "DB",
+      "description": "Database settings; nested environment keys use DB__HOST and DB__PORT."
     }
-  }
+  ]
 }

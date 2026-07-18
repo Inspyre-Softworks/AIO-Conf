@@ -135,7 +135,8 @@ def _cmd_sample(path: Path, *, fmt: str, output: Path | None) -> int:
 def _defaults_from_spec(spec: ConfigSpec) -> Dict[str, Any]:
     defaults: Dict[str, Any] = {}
     for opt in spec.options:
-        defaults[opt.name] = opt.default if opt.default is not None else f"<{opt.type}>"
+        type_name = opt.type if isinstance(opt.type, str) else getattr(opt.type, "__name__", str(opt.type))
+        defaults[opt.name] = opt.default if opt.default is not None else f"<{type_name}>"
     return defaults
 
 
@@ -178,7 +179,7 @@ def _toml_repr(value: Any) -> str:
         inner = ", ".join(_toml_repr(v) for v in value)
         return f"[{inner}]"
     if value is None:
-        return "null"
+        raise ValueError("TOML does not support null values")
     return json.dumps(str(value))
 
 
