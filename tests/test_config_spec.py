@@ -38,3 +38,23 @@ def test_required_option_without_value_is_rejected():
     config = AIOConfig(ConfigSpec([OptionSpec("token", str, required=True)]))
     with pytest.raises(ValueError, match="Required option 'token'"):
         config.load(env={})
+
+
+def test_loading_spec_from_explicit_path_tracks_it(tmp_path, monkeypatch):
+    from aio_conf.spec_registry import load_tracked_specs
+
+    config_dir = tmp_path / "user-config"
+    monkeypatch.setattr(
+        "aio_conf.spec_registry.platformdirs.user_config_path",
+        lambda _app_name, _app_author: config_dir,
+    )
+    path = tmp_path / "external" / "spec.json"
+    path.parent.mkdir()
+    path.write_text(
+        json.dumps({"options": [{"name": "port", "type": "int"}]}),
+        encoding="utf-8",
+    )
+
+    ConfigSpec.from_json_file(path)
+
+    assert load_tracked_specs() == [path.resolve()]

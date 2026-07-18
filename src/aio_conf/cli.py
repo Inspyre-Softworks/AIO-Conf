@@ -8,6 +8,7 @@ from typing import Any, Dict, Iterable
 import yaml
 
 from .core import ConfigSpec
+from .spec_registry import default_spec_path, load_tracked_specs, track_spec
 from .writer import to_ini
 
 
@@ -22,7 +23,12 @@ def build_parser() -> argparse.ArgumentParser:
         "init",
         help="Generate a starter configuration spec",
     )
-    init_cmd.add_argument("path", type=Path, help="Where to write the new spec file")
+    init_cmd.add_argument(
+        "path",
+        nargs="?",
+        type=Path,
+        help="Where to write the new spec file (defaults to the platform user config directory)",
+    )
     init_cmd.add_argument(
         "--force",
         action="store_true",
@@ -52,6 +58,11 @@ def build_parser() -> argparse.ArgumentParser:
         help="Optional file path. Defaults to stdout if omitted.",
     )
 
+    sub.add_parser(
+        "list",
+        help="List tracked configuration spec file locations",
+    )
+
     return parser
 
 
@@ -65,11 +76,14 @@ def main(argv: Iterable[str] | None = None) -> int:
         return _cmd_validate(args.spec)
     if args.command == "sample":
         return _cmd_sample(args.spec, fmt=args.format, output=args.output)
+    if args.command == "list":
+        return _cmd_list()
     parser.error("Congratulations, you found an impossible branch.")
     return 2
 
 
-def _cmd_init(path: Path, *, force: bool) -> int:
+def _cmd_init(path: Path | None, *, force: bool) -> int:
+    path = default_spec_path() if path is None else path
     template = {
         "options": [
             {
@@ -95,6 +109,8 @@ def _cmd_init(path: Path, *, force: bool) -> int:
         return 1
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(template, indent=2), encoding="utf-8")
+    if not _track_or_report(path):
+        return 1
     print(f"Created starter spec at {path}")
     return 0
 
@@ -130,6 +146,33 @@ def _cmd_sample(path: Path, *, fmt: str, output: Path | None) -> int:
     else:
         print(text)
     return 0
+
+
+def _cmd_list() -> int:
+    try:
+        paths = load_tracked_specs()
+    except (OSError, ValueError) as exc:
+        print(f"Couldn't read the spec file registry: {exc}")
+        return 1
+
+    if not paths:
+        print("No configuration spec files have been tracked yet.")
+        return 0
+
+    print("Tracked configuration spec files:")
+    for path in paths:
+        missing = " [missing]" if not path.is_file() else ""
+        print(f"- {path}{missing}")
+    return 0
+
+
+def _track_or_report(path: Path) -> bool:
+    try:
+        track_spec(path)
+    except (OSError, ValueError) as exc:
+        print(f"Couldn't update the spec file registry: {exc}")
+        return False
+    return True
 
 
 def _defaults_from_spec(spec: ConfigSpec) -> Dict[str, Any]:

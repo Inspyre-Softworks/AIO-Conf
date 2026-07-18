@@ -46,7 +46,7 @@ class ConfigSpec:
     @classmethod
     def from_json_file(cls, path: str | Path) -> 'ConfigSpec':
         """
-        Load a configuration from a JSON file and auto-validate (if enabled).
+        Load and validate a JSON specification, then register its canonical path.
         """
         p = Path(path)
         if not p.exists():
@@ -54,6 +54,9 @@ class ConfigSpec:
         with p.open('r', encoding='utf-8') as f:
             data = json.load(f)
         inst = cls.from_dict(data)
+        from aio_conf.spec_registry import track_spec
+
+        track_spec(p)
         return inst
 
     @classmethod

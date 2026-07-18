@@ -73,10 +73,18 @@ cfg.save_ini("settings.ini")
 Install the project (or use `poetry run`) to access the `aio-conf` CLI:
 
 ```bash
-aio-conf init spec.json          # create a starter spec template
+aio-conf init                    # create config_spec.json in the platform user config directory
+aio-conf init spec.json          # create it at an explicit path instead
 aio-conf validate spec.json      # sanity check the spec
 aio-conf sample spec.json --format toml --output sample.toml
+aio-conf list                    # list all tracked spec file locations
 ```
+
+The default directory is resolved with `platformdirs.user_config_path()` using
+the application name `aio-conf` and author `Inspyre Softworks`.
+Specs created by `init` or successfully read by `validate` and `sample` are
+recorded in `spec_files.json` in that same directory. Missing tracked files are
+retained and labeled when listed.
 
 All commands provide blunt-but-helpful feedback, and `sample` understands the
 same output formats that the loader accepts.
