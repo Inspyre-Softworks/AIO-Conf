@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import os
+from collections.abc import Mapping, Sequence
+from copy import deepcopy
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 from .conf_spec import ConfigSpec
 from ..loader import parse_cli, parse_env, load_file
@@ -47,7 +49,10 @@ class AIOConfig:
             None
         """
         self.spec                              = spec
-        self.values:            Dict[str, Any] = {opt.name: opt.default for opt in spec.options}
+        self.values: Dict[str, Any] = {
+            opt.name: deepcopy(opt.default)
+            for opt in spec.options
+        }
         self.__config_filepath: Optional[Path] = None
 
         if config_filepath is not None:
@@ -106,8 +111,8 @@ class AIOConfig:
 
     def load(
         self,
-        cli_args: Optional[List[str]] = None,
-        env: Optional[Dict[str, str]] = None,
+        cli_args: Optional[Sequence[str]] = None,
+        env: Optional[Mapping[str, str]] = None,
         file_path: Optional[str | Path] = None,
     ) -> None:
         """
@@ -135,9 +140,9 @@ class AIOConfig:
         Since:
             v1.0.0
         """
-        env = env or os.environ
-        cli_data = parse_cli(self.spec, cli_args or [])
-        env_data = parse_env(self.spec, env)
+        environment = os.environ if env is None else env
+        cli_data = parse_cli(self.spec, cli_args or ())
+        env_data = parse_env(self.spec, environment)
         file_data = load_file(file_path) if file_path else {}
 
         self.values = merge_sources(self.spec, cli_data, env_data, file_data)
@@ -172,7 +177,9 @@ class AIOConfig:
             v1.0.0
         """
         text = to_ini(self.values)
-        Path(path).write_text(text, encoding='utf-8')
+        target = Path(path)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(text, encoding='utf-8')
 
 
 def merge_sources(
@@ -210,16 +217,23 @@ def merge_sources(
     Since:
         v1.0.0
     """
-    merged = {}
+    merged: Dict[str, Any] = {}
     for opt in spec.options:
         if opt.name in cli:
-            merged[opt.name] = cli[opt.name]
+            value = cli[opt.name]
         elif opt.name in env:
-            merged[opt.name] = env[opt.name]
+            value = env[opt.name]
         elif opt.name in file:
-            merged[opt.name] = file[opt.name]
+            value = file[opt.name]
         else:
-            merged[opt.name] = opt.default
+            value = deepcopy(opt.default)
+
+        if value is None:
+            if opt.required:
+                raise ValueError(f"Required option '{opt.name}' has no value")
+            merged[opt.name] = None
+        else:
+            merged[opt.name] = opt.coerce(value)
 
     return merged
 

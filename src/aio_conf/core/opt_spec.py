@@ -1,8 +1,11 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from collections.abc import Mapping
 from pathlib import Path
 from typing import Any, Callable, Iterable, Optional, Union
+
+import json
 
 
 @dataclass(slots=True)
@@ -138,19 +141,22 @@ class OptionSpec:
     # ---------- Internals ----------
 
     def _get_converter(self) -> Callable[[Any], Any]:
-        if callable(self.type) and not isinstance(self.type, str):
-            return self.type  # user-supplied callable or a Python type
-
         if isinstance(self.type, str):
-            resolved = self._resolve_type_name(self.type)
-            return resolved
+            return self._resolve_type_name(self.type)
 
-        # Python built-in types like int/float/bool/Path
         if self.type is bool:
             return _coerce_bool
         if self.type is Path:
             return _coerce_path
-        return self.type  # int, float, str, etc.
+        if self.type is list:
+            return _coerce_list
+        if self.type is tuple:
+            return _coerce_tuple
+        if self.type is dict:
+            return _coerce_dict
+        if callable(self.type):
+            return self.type
+        raise TypeError(f"Option type must be a type name or callable, got {self.type!r}")
 
     @staticmethod
     def _resolve_type_name(name: str) -> Callable[[Any], Any]:
@@ -160,10 +166,13 @@ class OptionSpec:
             'float': float,
             'bool': _coerce_bool,
             'path': _coerce_path,
-            'Path': _coerce_path,
+            'list': _coerce_list,
+            'tuple': _coerce_tuple,
+            'dict': _coerce_dict,
         }
+        normalized = name.strip().lower()
         try:
-            return table[name]
+            return table[normalized]
         except KeyError as exc:
             raise ValueError(f"Unknown type string '{name}'. Expected one of: {', '.join(table)}") from exc
 
@@ -187,14 +196,113 @@ def _coerce_bool(value: Any) -> bool:
         if val in {'0', 'false', 'f', 'no', 'n', 'off'}:
             return False
 
-    # Fallback to Python truthiness
-    return bool(value)
+    raise ValueError(f"Expected a boolean value, got {value!r}")
 
 
 def _coerce_path(value: Any) -> Path:
     if isinstance(value, Path):
         return value
     return Path(str(value))
+
+
+def _coerce_list(value: Any) -> list[Any]:
+    if value is None:
+        return []
+    if isinstance(value, list):
+        return value
+    if isinstance(value, tuple):
+        return list(value)
+    if isinstance(value, str):
+        text = value.strip()
+        if not text:
+            return []
+        lowered = text.lower()
+        if lowered in {"none", "null"}:
+            return []
+        try:
+            parsed = json.loads(text)
+        except json.JSONDecodeError:
+            parsed = [_infer_scalar(chunk) for chunk in text.split(',') if chunk.strip()]
+        else:
+            if isinstance(parsed, list):
+                return parsed
+            if isinstance(parsed, (tuple, set)):
+                return list(parsed)
+            # Fallback for scalars encoded as JSON
+            return [_infer_scalar(parsed)]
+        return parsed
+    if isinstance(value, Iterable) and not isinstance(value, (bytes, bytearray, dict)):
+        return list(value)
+    return [_infer_scalar(value)]
+
+
+def _coerce_tuple(value: Any) -> tuple[Any, ...]:
+    return tuple(_coerce_list(value))
+
+
+def _coerce_dict(value: Any) -> dict[str, Any]:
+    if value is None:
+        return {}
+    if isinstance(value, Mapping):
+        return {str(k): _infer_scalar(v) for k, v in value.items()}
+    if isinstance(value, str):
+        text = value.strip()
+        if not text:
+            return {}
+        lowered = text.lower()
+        if lowered in {"none", "null"}:
+            return {}
+        try:
+            parsed = json.loads(text)
+        except json.JSONDecodeError:
+            parsed = None
+        else:
+            if isinstance(parsed, dict):
+                return {str(k): _infer_scalar(v) for k, v in parsed.items()}
+        items: dict[str, Any] = {}
+        for chunk in text.split(','):
+            if not chunk.strip():
+                continue
+            if '=' not in chunk:
+                raise ValueError(
+                    "Dictionary strings must be JSON or comma-separated key=value pairs"
+                )
+            key, raw_value = chunk.split('=', 1)
+            items[key.strip()] = _infer_scalar(raw_value.strip())
+        return items
+    if isinstance(value, Iterable) and not isinstance(value, (str, bytes, bytearray)):
+        raise ValueError('Cannot coerce non-string iterable to dict; use key=value pairs')
+    raise ValueError(f'Unsupported value for dict coercion: {value!r}')
+
+
+def _infer_scalar(value: Any) -> Any:
+    if isinstance(value, (dict, list, tuple)):
+        return value
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, (int, float)):
+        return value
+    if isinstance(value, str):
+        text = value.strip()
+        if text == "":
+            return ""
+        lowered = text.lower()
+        if lowered in {"true", "false"}:
+            return lowered == "true"
+        if lowered in {"null", "none"}:
+            return None
+        try:
+            return json.loads(text)
+        except json.JSONDecodeError:
+            pass
+        try:
+            return int(text)
+        except ValueError:
+            try:
+                return float(text)
+            except ValueError:
+                return text
+    return value
 
 
 __all__ = ['OptionSpec']

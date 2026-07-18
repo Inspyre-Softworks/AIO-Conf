@@ -14,6 +14,13 @@ directory install dependencies with:
 poetry install
 ```
 
+The optional configuration-builder UIs are development tools and are not
+required by the core library. Install them only when needed:
+
+```bash
+poetry install --with ui
+```
+
 ## Defining a specification
 
 You can declare options programmatically using `OptionSpec` and `ConfigSpec`:
@@ -26,6 +33,8 @@ spec = ConfigSpec([
     OptionSpec("debug", bool, default=False, env="APP_DEBUG", cli="--debug"),
 ])
 ```
+Boolean command-line options also accept the generated negated form, such as
+`--no-debug`.
 
 The spec can also be stored in JSON and loaded with
 `ConfigSpec.from_json_file()` or via `AIOConfig.load_from_spec()`.
@@ -35,8 +44,8 @@ The spec can also be stored in JSON and loaded with
 `AIOConfig` merges all sources with the following precedence:
 
 1. CLI arguments
-2. Environment variables
-3. File values (`json` or `yaml`)
+2. Environment variables (including nested values like `APP_DB__HOST`)
+3. File values (`json`, `yaml`, `toml` or `ini`/`cfg`)
 4. Defaults defined in the spec
 
 ```python
@@ -58,6 +67,27 @@ Configuration can be written to an INI file:
 ```python
 cfg.save_ini("settings.ini")
 ```
+
+## Command line helper
+
+Install the project (or use `poetry run`) to access the `aio-conf` CLI:
+
+```bash
+aio-conf init                    # create config_spec.json in the platform user config directory
+aio-conf init spec.json          # create it at an explicit path instead
+aio-conf validate spec.json      # sanity check the spec
+aio-conf sample spec.json --format toml --output sample.toml
+aio-conf list                    # list all tracked spec file locations
+```
+
+The default directory is resolved with `platformdirs.user_config_path()` using
+the application name `aio-conf` and author `Inspyre Softworks`.
+Specs created by `init` or successfully read by `validate` and `sample` are
+recorded in `spec_files.json` in that same directory. Missing tracked files are
+retained and labeled when listed.
+
+All commands provide blunt-but-helpful feedback, and `sample` understands the
+same output formats that the loader accepts.
 
 ## Testing
 
